@@ -4,7 +4,7 @@ featureSelection <- function(data) {
   
   # Index of highly correlation features
   hightlyCorrelated <- findCorrelation(correlationMatrix,
-                                       cutoff = 0.9, names = TRUE)
+                                       cutoff = 0.95, names = TRUE)
   
   # Remove highly correlated features
   data <- data[, !names(data) %in% hightlyCorrelated]
