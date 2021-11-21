@@ -9,20 +9,20 @@ source("utils/helpers.R")
 data <- read.csv(file = "dataset/dataset.csv")
 
 #dataset cleaning
-data <- dataCleaning(data)
+df <- dataCleaning(data)
 
 #selecting relevent features from the dataset
-data <- featureSelection(data)
-data$pha <- ifelse(data$pha=='N',0,1)
-#data$pha <- factor(data$pha)
+df <- featureSelection(df)
+df$pha <- ifelse(df$pha=='N',0,1)
+df$pha <- factor(df$pha)
 
 # Split dataset
-sample = sample.split(data$pha, SplitRatio = 0.75)
-train = subset(data, sample == TRUE)
-test = subset(data, sample == FALSE)
+sample = sample.split(df$pha, SplitRatio = 0.75)
+train = subset(df, sample == TRUE)
+test = subset(df, sample == FALSE)
 
 #create model
-model <- glm(formula=pha ~ ., data = train)
+model <- glm(formula=pha ~ ., data = train, family = "binomial")
 model
 
 # Predict test set
