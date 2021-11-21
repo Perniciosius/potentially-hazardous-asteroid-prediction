@@ -23,13 +23,13 @@ train = subset(df, sample == TRUE)
 test = subset(df, sample == FALSE)
 
 #create model
-model <- neuralnet::neuralnet(formula=pha ~ ., data = train)
+model <- neuralnet::neuralnet(formula=pha ~ ., data = train, hidden=5)
 model
 
 # Predict test set
 pred <- neuralnet::compute(model,subset(test,select=-c(pha)))
 pred$net.result
 pred$net.result <- ifelse(pred$net.result>0.5, 1, 0)
-accuracy(test$pha,pred$net.result)
-recall(test$pha,pred$net.result)
-precision(test$pha,pred$net.result)
+u <- union(pred$net.result, test$pha)
+t <- table(factor(test$pha, u),factor(pred$net.result, u))
+confusionMatrix(t)
