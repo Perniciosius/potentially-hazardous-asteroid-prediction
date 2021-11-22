@@ -23,7 +23,8 @@ train = subset(df, sample == TRUE)
 test = subset(df, sample == FALSE)
 
 #create model
-model <- neuralnet::neuralnet(formula=pha ~ ., data = train, hidden=5)
+model <- neuralnet::neuralnet(formula=pha ~ ., data = train, hidden=3, 
+                            act.fct = "logistic", err.fct = "ce")
 model
 
 # Predict test set
