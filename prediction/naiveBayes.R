@@ -1,19 +1,20 @@
-library(naivebayes)
-library(e1071)
-
+pacman::p_load(naivebayes)
+pacman::p_load(e1071)
+pacman::p_load(caret)
+pacman::p_load(caTools)
 source("utils/helpers.R")
 
 # Load dataset
-data <- read.csv(file = "dataset/dataset.csv", nrows = 10000)
+data <- read.csv(file = "dataset/dataset.csv")
 
-data <- dataCleaning(data)
+df <- dataCleaning(data)
 
-data <- featureSelection(data)
+df <- featureSelection(df)
 
 # Split dataset
-sample = sample.split(data$pha, SplitRatio = 0.75)
-train = subset(data, sample == TRUE)
-test = subset(data, sample == FALSE)
+sample = sample.split(df$pha, SplitRatio = 0.75)
+train = subset(df, sample == TRUE)
+test = subset(df, sample == FALSE)
 
 # Create model
 model <- naive_bayes(pha ~ ., data = train)
