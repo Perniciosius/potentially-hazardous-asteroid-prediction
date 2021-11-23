@@ -1,0 +1,111 @@
+# decision tree for the astroid dataset
+
+#import librarys
+```{r}
+library(caret)
+library(tidyverse)
+library(caret)
+library(rpart)
+library(Metrics)
+```
+
+#data pre processing
+```{r}
+featureSelection <- function(data) {
+  # Highly correlated features
+  correlationMatrix <- cor(data[, names(data) != "pha"])
+  
+  # Index of highly correlation features
+  hightlyCorrelated <- findCorrelation(correlationMatrix,
+                                       cutoff = 0.9, names = TRUE)
+  
+  # Remove highly correlated features
+  data <- data[, !names(data) %in% hightlyCorrelated]
+  return(data)
+}
+
+
+dataCleaning <- function(data) {
+  # Remove unnecessary field
+  data <- data[, !names(data)
+               %in% c("prefix", "id", "spkid", "full_name", "pdes",
+                      "name", "orbit_id", "equinox", "neo", "class")]
+  
+  # Remove NA data
+  data <- na.omit(data)
+  
+  # Categorical data
+  data <- transform(
+    data,
+    pha = as.factor(pha)
+  )
+  
+  return(data)
+}
+```
+
+```{r}
+data=read.csv("dataset.csv")
+
+```
+
+```{r}
+data1=dataCleaning(data)
+data2=featureSelection(data1)
+names(data2)
+```
+
+```{r}
+training.samples <- data2$pha %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- data2[training.samples, ]
+test.data <- data2[-training.samples, ]
+```
+
+```{r}
+model1 <- rpart(pha ~., data = train.data, method = "class")
+# Plot the trees
+par(xpd = NA) # Avoid clipping the text in some device
+plot(model1)
+text(model1, digits = 3)
+
+```
+
+```{r}
+# Make predictions on the test data
+predicted.classes <- model1 %>% 
+  predict(test.data, type = "class")
+
+# Compute model accuracy rate on test data
+mean(predicted.classes == test.data$pha)
+
+```
+
+```{r}
+model2 <- train(
+  pha ~., data = train.data, method = "rpart",
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 10
+  )
+# Plot model accuracy vs different values of
+# cp (complexity parameter)
+plot(model2)
+```
+```{r}
+# Print the best tuning parameter cp that
+# maximizes the model accuracy
+model2$bestTune
+```
+
+## In rpart package, this is controlled by the complexity parameter (cp), which imposes a penalty to the tree for having two many splits. The default value is 0.01. The higher the cp, the smaller the tree.
+
+## A too small value of cp leads to overfitting and a too large cp value will result to a too small tree. Both cases decrease the predictive performance of the model.
+
+## An optimal cp value can be estimated by testing different cp values and using cross-validation approaches to determine the corresponding prediction accuracy of the model. The best cp is then defined as the one that maximize the cross-validation accuracy (Chapter @ref(cross-validation)).
+
+## Pruning can be easily performed in the caret package workflow, which invokes the rpart method for automatically testing different possible values of cp, then choose the optimal cp that maximize the cross-validation (“cv”) accuracy, and fit the final best CART model that explains the best our data.
+
+## here pruning of tree is not required as the tree is not been over split and the accuracy is also very close to 100%
+
+
+
