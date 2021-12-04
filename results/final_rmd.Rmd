@@ -1,0 +1,264 @@
+---
+title: "Potentially Hazardous Asteriods Prediction "
+author: "Pritish Vilin Zunke, Jay Gupta, Aman Kumar Sinha"
+output:
+  html_document:
+    theme: darkly
+    highlight: tango
+---
+
+#  Analysis
+```{r}
+#libraries used
+pacman::p_load(naivebayes)
+pacman::p_load(e1071)
+pacman::p_load(caret)
+pacman::p_load(caTools)
+pacman::p_load(tidyverse)
+pacman::p_load(rpart)
+pacman::p_load(Metrics)
+pacman::p_load(adabag)
+pacman::p_load(caTools)
+pacman::p_load(dplyr)
+pacman::p_load(neuralnet)
+pacman::p_load(randomForest)
+pacman::p_load(ggplot2)
+options(warn = -1)
+```
+
+```{r}
+data=read.csv("dataset/dataset.csv")
+```
+
+```{r}
+# Dimesion of dataset
+dim(data)
+```
+
+```{r}
+# Structure of dataset
+str(data)
+```
+
+
+```{r}
+# Removing prefix column as it has only NA values
+data$prefix = NULL
+
+data <- transform(
+  data,
+  neo = as.factor(neo),
+  pha = as.factor(pha),
+  orbit_id = as.factor(orbit_id),
+  equinox = as.factor(equinox),
+  class = as.factor(class)
+)
+# Removing rows with NAs
+data <- na.omit(data)
+data = droplevels(data)
+
+```
+
+```{r}
+# Summary of dataset
+summary(data)
+```
+
+###  Correlation Matrix
+```{r}
+
+correlationMatrix <- cor(Filter(is.numeric, data))
+corrplot::corrplot(correlationMatrix)
+```
+
+###  Plot asteroids diameter distribution
+```{r}
+ggplot(data, aes(x = diameter)) + geom_histogram()
+```
+
+###  Plot asteroids diameter distribution(with x limit)
+```{r}
+# Plot asteroids diameter distribution
+ggplot(data, aes(x = diameter)) + geom_histogram()+xlim(0,35)
+```
+
+
+###  Plot potentially hazardous asteroids distribution
+```{r}
+
+ggplot(data, aes(x = pha, fill = pha)) + geom_bar()
+```
+
+###  Scatter plot between Earth Minimum Orbit Intersection Distance and diameter
+```{r}
+ggplot(data, aes(x = moid, y=diameter)) + geom_point(aes(colour=pha))
+```
+
+###  Scatter plot between Earth Minimum Orbit Intersection Distance and diameter(with x and y limits)
+```{r}
+ggplot(data, aes(x = moid, y=diameter)) + geom_point(aes(colour=pha))+xlim(0,5)+ylim(0,200)
+```
+
+###  Scatter plot between Earth Minimum Orbit Intersection Distance and absolute magnitude parameter
+```{r}
+ggplot(data, aes(x = moid, y=H)) + geom_point(aes(colour=pha))
+```
+
+###  Scatter plot between Earth Minimum Orbit Intersection Distance and absolute magnitude parameter(with x limit)
+```{r}
+ggplot(data, aes(x = moid, y=H)) + geom_point(aes(colour=pha))+xlim(0,5)
+```
+
+###  Scatter plot between diameter and absolute magnitude parameter
+```{r}
+ggplot(data, aes(x = diameter, y=H)) + geom_point(aes(colour=pha))
+```
+
+###  Scatter plot between diameter and absolute magnitude parameter(with x limit)
+```{r}
+ggplot(data, aes(x = diameter, y=H)) + geom_point(aes(colour=pha))+xlim(0,250)
+```
+
+
+###  Plot potentially hazardous asteroids distribution
+```{r}
+ggplot(data, aes(x = class, fill = class)) + geom_bar()
+```
+
+
+#  Predictions
+```{r}
+# Load dataset
+df <- read.csv(file = "dataset/balanced_dataset.csv")
+```
+
+```{r}
+#data cleaning and feature selection
+featureSelection <- function(data) {
+  # Highly correlated features
+  correlationMatrix <- cor(data[, names(data) != "pha"])
+  
+  # Index of highly correlation features
+  hightlyCorrelated <- findCorrelation(correlationMatrix,
+                                       cutoff = 0.95, names = TRUE)
+  
+  # Remove highly correlated features
+  data <- data[, !names(data) %in% hightlyCorrelated]
+  return(data)
+}
+
+
+dataCleaning <- function(data) {
+  # Remove unnecessary field
+  data <- data[, !names(data)
+               %in% c("prefix", "id", "spkid", "full_name", "pdes",
+                      "name", "orbit_id", "equinox", "neo", "class","X")]
+  
+  # Remove NA data
+  data <- na.omit(data)
+  
+  # Categorical data
+  data <- transform(
+    data,
+    pha = as.factor(pha)
+  )
+  
+  return(data)
+}
+
+```
+
+##  Cleaning data and Feature selection
+```{r}
+
+df <- dataCleaning(df)
+
+df <- featureSelection(df)
+```
+
+##  Naive Bayes
+```{r}
+
+# Split dataset
+sample = sample.split(df$pha, SplitRatio = 0.75)
+train = subset(df, sample == TRUE)
+test = subset(df, sample == FALSE)
+
+# Create model
+model <- naive_bayes(pha ~ ., data = train)
+model
+
+# Predict test set
+pred <- predict(model, test)
+confusionMatrix(table(test$pha, pred))
+```
+##  Decision Tree
+```{r}
+training.samples <- df$pha %>% 
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- df[training.samples, ]
+test.data <- df[-training.samples, ]
+model <- rpart(pha ~., data = train.data, method = "class")
+# Plot the trees
+par(xpd = NA) # Avoid clipping the text in some device
+plot(model)
+text(model, digits = 3)
+# Make predictions on the test data
+predicted.classes <- model %>% 
+  predict(test.data, type = "class")
+# Compute model accuracy rate on test data
+accuracy=mean(predicted.classes == test.data$pha)
+cat("Accuracy:",accuracy,"\n")
+confusionMatrix(test.data$pha,predicted.classes)
+```
+##  Random Forest
+```{r}
+data <- dataCleaning(data)
+data <- featureSelection(data)
+sample = sample.split(data$pha, SplitRatio = 0.75)
+train = subset(data, sample == TRUE)
+test = subset(data, sample == FALSE)
+# Create model
+model <- randomForest(pha ~ ., data = train)
+model
+# Predict test set
+pred = predict(model, test)
+confusionMatrix(table(test$pha, pred))
+
+```
+##  Neural Network
+```{r}
+df$pha <- ifelse(df$pha=='N',0,1)
+# Split dataset
+sample = sample.split(df$pha, SplitRatio = 0.75)
+train = subset(df, sample == TRUE)
+test = subset(df, sample == FALSE)
+#create model
+model <- neuralnet::neuralnet(formula=pha ~ ., data = train, hidden=2,act.fct = "tanh",err.fct = "sse")
+# Predict test set
+pred <- neuralnet::compute(model,subset(test,select=-c(pha)))
+pred$net.result <- ifelse(pred$net.result>0.5, 1, 0)
+u <- union(pred$net.result, test$pha)
+t <- table(factor(test$pha, u),factor(pred$net.result, u))
+confusionMatrix(t)
+```
+
+##  Logistic Regression
+```{r}
+df$pha <- factor(df$pha)
+
+# Split dataset
+sample = sample.split(df$pha, SplitRatio = 0.75)
+train = subset(df, sample == TRUE)
+test = subset(df, sample == FALSE)
+
+#create model
+model <- glm(formula=pha ~ ., data = train, family = "binomial")
+model
+
+# Predict test set
+pred <- predict(model, test, type="response")
+pred <- ifelse(pred >0.5, 1, 0)
+confusionMatrix(table(test$pha, pred))
+```
+
