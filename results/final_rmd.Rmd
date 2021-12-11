@@ -1,6 +1,6 @@
 ---
 title: "Potentially Hazardous Asteriods Prediction "
-author: "Pritish Vilin Zunke, Jay Gupta, Aman Kumar Sinha"
+author: "Jay Gupta 19BPS1009, Aman Kumar Sinha 19BPS1026, Pritish Vilin Zunke 19BPS1119"
 output:
   html_document:
     theme: darkly
@@ -27,7 +27,7 @@ options(warn = -1)
 ```
 
 ```{r}
-data=read.csv("dataset/dataset.csv")
+data=read.csv("../dataset/dataset.csv")
 ```
 
 ```{r}
@@ -39,6 +39,24 @@ dim(data)
 # Structure of dataset
 str(data)
 ```
+
+
+H - An asteroid’s absolute magnitude is the visual magnitude an observer would record if the asteroid were placed 1 Astronomical Unit (au) away, and 1 au from the Sun and at a zero phase angle. The magnitude of an asteroid at zero phase angle and at unit heliocentric and geocentric distances.
+
+Diameter - Diameter of asteroid
+
+Albedo - is the measure of the diffuse reflection of solar radiation out of the total solar radiation and measured on a scale from 0, corresponding to a black body that absorbs all incident radiation, to 1, corresponding to a body that reflects all incident radiation  Geometric albedo is the ratio of a body’s brightness at zero phase angle to the brightness of a perfectly diffusing disk with the same position and apparent size as the body. Our Moon has a very low albedo (0.07), while Venus has a high albedo (0.60). The albedo combined with the absolute magnitude can help determine the size of an asteroid.
+
+Diameter_sigma - 1-sigma uncertainty in object diameter km Unit
+Epoch - In astronomy, an epoch or reference epoch is a moment in time used as a reference point for some time-varying astronomical quantity. It is useful for the celestial coordinates or orbital elements of a celestial body, as they are subject to perturbations and vary with time.
+
+Eccentricity (e)- One half of the major axis of the elliptical orbit; also the mean distance from the Sun.
+
+Inclination(i) - Orbital inclination measures the tilt of an object's orbit around a celestial body. It is expressed as the angle between a reference plane and the orbital plane or axis of direction of the orbiting object.
+
+moid - Minimum orbit intersection distance (MOID) is a measure used in astronomy to assess potential close approaches and collision risks between astronomical objects. It is defined as the distance between the closest points of the osculating orbits of two bodies
+
+Note: all data fields starting with sigma are measurement uncertainty of corresponding feature.(standard deviation)
 
 
 ```{r}
@@ -82,12 +100,39 @@ ggplot(data, aes(x = diameter)) + geom_histogram()
 ggplot(data, aes(x = diameter)) + geom_histogram()+xlim(0,35)
 ```
 
+Most of the asteroids have a diameter of range 0-10 km.
+
+
+###  Plot asteroids diameter distribution (for PHA)
+```{r}
+# Plot asteroids diameter distribution
+data%>%
+  filter(pha=='Y')%>%
+  ggplot(aes(x = diameter)) + geom_histogram()
+```
+
+Most of the  Potentially Hazardous Asteroids have a diameter of 0-2.5 km.
 
 ###  Plot potentially hazardous asteroids distribution
 ```{r}
 
 ggplot(data, aes(x = pha, fill = pha)) + geom_bar()
 ```
+
+###  Plot near earth object distribution
+```{r}
+
+ggplot(data, aes(x = neo, fill = neo)) + geom_bar()
+```
+
+###  Plot potentially hazardous asteroids distribution
+```{r}
+data%>%
+  filter(neo=='Y')%>%
+  ggplot(aes(x = pha, fill = pha)) + geom_bar()
+```
+
+NEOs that are PHAs.
 
 ###  Scatter plot between Earth Minimum Orbit Intersection Distance and diameter
 ```{r}
@@ -99,6 +144,15 @@ ggplot(data, aes(x = moid, y=diameter)) + geom_point(aes(colour=pha))
 ggplot(data, aes(x = moid, y=diameter)) + geom_point(aes(colour=pha))+xlim(0,5)+ylim(0,200)
 ```
 
+###  Scatter plot between Earth Minimum Orbit Intersection Distance and diameter (for PHA)
+```{r}
+data%>%
+  filter(pha=='Y')%>%
+  ggplot(aes(x = moid, y=diameter)) + geom_point(aes(colour=pha))
+```
+
+Most of the PHA have diameter less than 2 km and Earth Minimum Orbit Intersection Distance less than 0.05.
+
 ###  Scatter plot between Earth Minimum Orbit Intersection Distance and absolute magnitude parameter
 ```{r}
 ggplot(data, aes(x = moid, y=H)) + geom_point(aes(colour=pha))
@@ -107,6 +161,13 @@ ggplot(data, aes(x = moid, y=H)) + geom_point(aes(colour=pha))
 ###  Scatter plot between Earth Minimum Orbit Intersection Distance and absolute magnitude parameter(with x limit)
 ```{r}
 ggplot(data, aes(x = moid, y=H)) + geom_point(aes(colour=pha))+xlim(0,5)
+```
+
+###  Scatter plot between Earth Minimum Orbit Intersection Distance and absolute magnitude parameter (for PHA)
+```{r}
+data%>%
+  filter(pha=='Y')%>%
+  ggplot(aes(x = moid, y=H)) + geom_point(aes(colour=pha))
 ```
 
 ###  Scatter plot between diameter and absolute magnitude parameter
@@ -119,17 +180,24 @@ ggplot(data, aes(x = diameter, y=H)) + geom_point(aes(colour=pha))
 ggplot(data, aes(x = diameter, y=H)) + geom_point(aes(colour=pha))+xlim(0,250)
 ```
 
+###  Scatter plot between diameter and absolute magnitude parameter(with x limit)
+```{r}
+data%>%
+  filter(pha=='Y')%>%
+  ggplot(aes(x = diameter, y=H)) + geom_point(aes(colour=pha))
+```
+
+PHA with lesser diameter have higher absolute magnitude parameter.
 
 ###  Plot potentially hazardous asteroids distribution
 ```{r}
 ggplot(data, aes(x = class, fill = class)) + geom_bar()
 ```
 
-
 #  Predictions
 ```{r}
 # Load dataset
-df <- read.csv(file = "dataset/balanced_dataset.csv")
+df <- read.csv("../dataset/balanced_dataset.csv")
 ```
 
 ```{r}
@@ -178,7 +246,7 @@ df <- featureSelection(df)
 
 ##  Naive Bayes
 ```{r}
-
+options(warn = -1)
 # Split dataset
 sample = sample.split(df$pha, SplitRatio = 0.75)
 train = subset(df, sample == TRUE)
@@ -213,11 +281,9 @@ confusionMatrix(test.data$pha,predicted.classes)
 ```
 ##  Random Forest
 ```{r}
-data <- dataCleaning(data)
-data <- featureSelection(data)
-sample = sample.split(data$pha, SplitRatio = 0.75)
-train = subset(data, sample == TRUE)
-test = subset(data, sample == FALSE)
+sample = sample.split(df$pha, SplitRatio = 0.75)
+train = subset(df, sample == TRUE)
+test = subset(df, sample == FALSE)
 # Create model
 model <- randomForest(pha ~ ., data = train)
 model
@@ -245,6 +311,7 @@ confusionMatrix(t)
 
 ##  Logistic Regression
 ```{r}
+options(warn = -1)
 df$pha <- factor(df$pha)
 
 # Split dataset
@@ -262,3 +329,5 @@ pred <- ifelse(pred >0.5, 1, 0)
 confusionMatrix(table(test$pha, pred))
 ```
 
+We have balanced the dataset using undersampling, accuracy for logistic regression has increased. 
+Ensemble models and decision tree that is the tree based models have the highest accuracy and the best performance amongst all. Using these models we were successfully able to classify near earth objects into potentially hazardous and non hazardous asteroids.
