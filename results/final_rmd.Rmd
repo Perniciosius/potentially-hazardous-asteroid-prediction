@@ -1,6 +1,6 @@
 ---
 title: "Potentially Hazardous Asteriods Prediction "
-author: "Jay Gupta 19BPS1009, Aman Kumar Sinha 19BPS1026, Pritish Vilin Zunke 19BPS1119"
+author: "Jay Gupta 19BPS1009, Aman Kumar Sinha 19BPS1026, Rohan Pathak 19BPS1032, Utkarsh Yadav 19BPS1100"
 output:
   html_document:
     theme: darkly
@@ -23,6 +23,7 @@ pacman::p_load(dplyr)
 pacman::p_load(neuralnet)
 pacman::p_load(randomForest)
 pacman::p_load(ggplot2)
+pacman::p_load(mda)
 options(warn = -1)
 ```
 
@@ -327,6 +328,19 @@ model
 pred <- predict(model, test, type="response")
 pred <- ifelse(pred >0.5, 1, 0)
 confusionMatrix(table(test$pha, pred))
+```
+
+
+## Mixture Discriminant Analysis (MDA)
+```{r}
+model <- mda(pha~., data = train)
+predictions <- model %>% predict(test)
+
+pred <- ifelse(predictions == "N",0,1)
+y_test <- ifelse(test$pha == "N",0,1)
+example <- confusionMatrix(data=as.factor(pred), reference = as.factor(y_test))
+example
+
 ```
 
 We have balanced the dataset using undersampling, accuracy for logistic regression has increased. 
